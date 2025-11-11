@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
@@ -24,8 +24,9 @@ export function FindView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const { tenant } = authService.getAuthData();
 
-  const loadSchemas = async () => {
+  const loadSchemas = useCallback(async () => {
     try {
       setError('');
       const data = await api.schemas.list();
@@ -40,7 +41,7 @@ export function FindView() {
     } catch (err) {
       setError(err.message || 'Failed to load schemas');
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -55,27 +56,44 @@ export function FindView() {
   }, []);
 
   // Clear search state when tenant changes
-  useEffect(() => {
-    const handleTenantChange = () => {
-      setResults([]);
-      setSearchPerformed(false);
-      setSelectedSchema('');
-      setError('');
-      // Reload schemas for new tenant
-      loadSchemas();
-    };
+  const handleTenantChange = useCallback(() => {
+    setResults([]);
+    setSearchPerformed(false);
+    setSelectedSchema('');
+    setError('');
+    // Reload schemas for new tenant
+    loadSchemas();
+  }, [loadSchemas]);
 
+  useEffect(() => {
     // Listen for tenant changes (custom event)
     window.addEventListener('tenantChanged', handleTenantChange);
     
     return () => {
       window.removeEventListener('tenantChanged', handleTenantChange);
     };
-  }, [loadSchemas]);
+  }, [handleTenantChange]);
+
+  const saveSearchState = useCallback(() => {
+    try {
+      if (results.length > 0) {
+        sessionStorage.setItem(SEARCH_RESULTS_KEY, JSON.stringify(results));
+        console.log('Saved results:', results.length, 'records');
+      }
+      if (selectedSchema) {
+        sessionStorage.setItem(SEARCH_SCHEMA_KEY, selectedSchema);
+        console.log('Saved schema:', selectedSchema);
+      }
+      sessionStorage.setItem(SEARCH_PERFORMED_KEY, JSON.stringify(searchPerformed));
+      console.log('Saved search performed:', searchPerformed);
+    } catch (err) {
+      console.warn('Failed to save search state:', err);
+    }
+  }, [results, selectedSchema, searchPerformed]);
 
   useEffect(() => {
     saveSearchState();
-  }, [results, selectedSchema, searchPerformed]);
+  }, [saveSearchState]);
 
   useEffect(() => {
     // Ensure saved schema is valid when schemas are loaded
@@ -111,22 +129,7 @@ export function FindView() {
     }
   };
 
-  const saveSearchState = () => {
-    try {
-      if (results.length > 0) {
-        sessionStorage.setItem(SEARCH_RESULTS_KEY, JSON.stringify(results));
-        console.log('Saved results:', results.length, 'records');
-      }
-      if (selectedSchema) {
-        sessionStorage.setItem(SEARCH_SCHEMA_KEY, selectedSchema);
-        console.log('Saved schema:', selectedSchema);
-      }
-      sessionStorage.setItem(SEARCH_PERFORMED_KEY, JSON.stringify(searchPerformed));
-      console.log('Saved search performed:', searchPerformed);
-    } catch (err) {
-      console.warn('Failed to save search state:', err);
-    }
-  };
+
 
   const handleSearch = async (schema, query) => {
     if (!schema) {
@@ -159,7 +162,7 @@ export function FindView() {
   };
 
   const breadcrumbs = [
-    { label: 'Home', path: '/data' },
+    { label: tenant, path: '/data' },
     { label: 'Search', path: null },
   ];
 

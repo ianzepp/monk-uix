@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import './ProjectView.css';
 
 export function ProjectView() {
   const { projectId } = useParams();
+  const { tenant } = authService.getAuthData();
   const [schemas, setSchemas] = useState([]);
   const [selectedSchema, setSelectedSchema] = useState(null);
   const [records, setRecords] = useState([]);
@@ -112,7 +114,7 @@ export function ProjectView() {
   };
 
   const breadcrumbs = [
-    { label: 'Home', path: '/' },
+    { label: tenant, path: '/data' },
     { label: projectId, path: null },
   ];
 

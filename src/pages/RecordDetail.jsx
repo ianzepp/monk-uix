@@ -161,9 +161,9 @@ export function RecordDetail() {
   };
 
   const breadcrumbs = [
-    { label: 'Home', path: '/data' },
     { label: tenant, path: '/data' },
-    { label: schema, path: '/data' },
+    { label: 'Data', path: '/data' },
+    { label: schema, path: `/data/${schema}` },
     { label: `#${recordId.substring(0, 8)}`, path: null },
   ];
 

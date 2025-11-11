@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { SchemaView } from './pages/SchemaView';
 import { FindView } from './pages/FindView';
+import { FileView } from './pages/FileView';
 import { RecordDetail } from './pages/RecordDetail';
 import './styles/global.css';
 
@@ -44,6 +45,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FindView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/file"
+          element={
+            <ProtectedRoute>
+              <FileView />
             </ProtectedRoute>
           }
         />

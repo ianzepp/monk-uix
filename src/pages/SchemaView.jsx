@@ -275,8 +275,8 @@ export function SchemaView() {
   };
 
   const breadcrumbs = [
-    { label: 'Home', path: '/data' },
-    { label: tenant, path: null },
+    { label: tenant, path: '/data' },
+    { label: 'Data', path: null },
   ];
 
   const displayColumns = getDisplayColumns();

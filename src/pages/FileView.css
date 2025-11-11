@@ -1,0 +1,247 @@
+.file-terminal {
+  background: var(--white);
+  border: 1px solid var(--gray-2);
+  border-radius: 4px;
+  padding: 1.5rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.terminal-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-2);
+}
+
+.prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.view-button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--primary-blue);
+  border-radius: 3px;
+  background: var(--white);
+  color: var(--primary-blue);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-button:hover {
+  background: var(--primary-blue);
+  color: var(--white);
+}
+
+.view-button:active {
+  transform: translateY(1px);
+}
+
+.command-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 11px;
+  color: var(--gray-3);
+}
+
+.history-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--gray-4);
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.history-item-latest {
+  font-weight: 600;
+}
+
+.history-item-success {
+  color: var(--success);
+}
+
+.history-item-failure {
+  color: var(--error);
+}
+
+.history-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.history-command-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cwd-label {
+  color: var(--primary-blue);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.command-form {
+  width: 100%;
+  display: flex;
+}
+
+.command-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--gray-2);
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gray-4);
+  padding: 0.25rem 0;
+}
+
+.command-input::placeholder {
+  color: var(--gray-3);
+  font-style: italic;
+}
+
+.command-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Terminal-like focus effect */
+.command-input:focus {
+  border-bottom-color: var(--primary-blue);
+  box-shadow: 0 1px 0 0 var(--primary-blue);
+}
+
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 12px;
+  color: var(--gray-3);
+}
+
+.error-message {
+  background: var(--error-bg);
+  color: var(--error);
+  padding: 0.75rem;
+  border-radius: 3px;
+  margin-bottom: 1rem;
+  font-size: 12px;
+  border-left: 3px solid var(--error);
+}
+
+.response-area {
+  background: var(--gray-1);
+  border: 1px solid var(--gray-2);
+  border-radius: 3px;
+  padding: 1rem;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.response-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  height: 100%;
+}
+
+.response-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.response-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gray-3);
+  letter-spacing: 0.08em;
+}
+
+.response-content {
+  margin: 0;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--gray-4);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Loading animation */
+.loading {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--gray-3);
+  border-radius: 50%;
+  border-top-color: var(--primary-blue);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .terminal-prompt {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .prompt-header {
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .command-form {
+    width: 100%;
+  }
+
+  .history-command-text {
+    white-space: normal;
+  }
+
+  .response-area {
+    max-height: 300px;
+  }
+
+  .response-columns {
+    grid-template-columns: 1fr;
+  }
+}

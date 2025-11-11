@@ -25,6 +25,7 @@ export function Header() {
             <nav className="header-nav">
               <Link to="/data" className="nav-link">Data</Link>
               <Link to="/find" className="nav-link">Search</Link>
+              <Link to="/file" className="nav-link">File</Link>
             </nav>
           )}
         </div>

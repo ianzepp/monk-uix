@@ -137,4 +137,36 @@ export const api = {
       });
     },
   },
+
+  file: {
+    list: async (path, cwd) => {
+      return apiCall('/api/file/list', {
+        method: 'POST',
+        body: JSON.stringify({
+          path,
+          ...(cwd ? { cwd } : {}),
+        }),
+      });
+    },
+
+    read: async (path, cwd) => {
+      return apiCall('/api/file/retrieve', {
+        method: 'POST',
+        body: JSON.stringify({
+          path,
+          ...(cwd ? { cwd } : {}),
+        }),
+      });
+    },
+
+    stat: async (path, cwd) => {
+      return apiCall('/api/file/stat', {
+        method: 'POST',
+        body: JSON.stringify({
+          path,
+          ...(cwd ? { cwd } : {}),
+        }),
+      });
+    },
+  },
 };
