@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { authService } from '../../services/auth';
+import { TenantSelector } from './TenantSelector';
 import './Header.css';
 
 export function Header() {
-  const { tenant, user } = authService.getAuthData();
   const isAuthenticated = authService.isAuthenticated();
 
   const handleLogout = () => {
@@ -32,9 +32,7 @@ export function Header() {
         <div className="header-right">
           {isAuthenticated && (
             <>
-              <span className="header-user">
-                {user} @ {tenant}
-              </span>
+              <TenantSelector />
               <button onClick={handleLogout} className="btn btn-secondary btn-sm">
                 Logout
               </button>

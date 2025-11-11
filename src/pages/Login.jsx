@@ -1,14 +1,28 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authService } from '../services/auth';
 import './Login.css';
 
 export function Login() {
   const navigate = useNavigate();
-  const [tenant, setTenant] = useState(import.meta.env.VITE_DEFAULT_TENANT || '');
-  const [user, setUser] = useState(import.meta.env.VITE_DEFAULT_USER || '');
+  const [searchParams] = useSearchParams();
+  const [tenant, setTenant] = useState('');
+  const [user, setUser] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAddingTenant, setIsAddingTenant] = useState(false);
+
+  useEffect(() => {
+    // Check if this is adding a tenant vs initial login
+    const addParam = searchParams.get('add');
+    setIsAddingTenant(!!addParam);
+    
+    // Pre-fill from environment if initial login
+    if (!addParam) {
+      setTenant(import.meta.env.VITE_DEFAULT_TENANT || '');
+      setUser(import.meta.env.VITE_DEFAULT_USER || '');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,6 +31,7 @@ export function Login() {
 
     try {
       await authService.login(tenant, user);
+      // Always redirect to /data after successful login
       navigate('/data');
     } catch (err) {
       setError(err.message || 'Authentication failed');
@@ -29,7 +44,9 @@ export function Login() {
     <div className="login-container">
       <div className="login-card">
         <h1>Monk UI</h1>
-        <p className="login-subtitle">Sign in to your tenant</p>
+        <p className="login-subtitle">
+          {isAddingTenant ? 'Add another tenant' : 'Sign in to your tenant'}
+        </p>
 
         {error && <div className="error-message">{error}</div>}
 

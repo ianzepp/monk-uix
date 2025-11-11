@@ -61,6 +61,8 @@ export function FindView() {
       setSearchPerformed(false);
       setSelectedSchema('');
       setError('');
+      // Reload schemas for new tenant
+      loadSchemas();
     };
 
     // Listen for tenant changes (custom event)
@@ -69,7 +71,7 @@ export function FindView() {
     return () => {
       window.removeEventListener('tenantChanged', handleTenantChange);
     };
-  }, []);
+  }, [loadSchemas]);
 
   useEffect(() => {
     saveSearchState();

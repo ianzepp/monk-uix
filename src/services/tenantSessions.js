@@ -30,6 +30,9 @@ export const tenantSessions = {
   switchSession: (tenant) => {
     const sessions = storage.get(SESSIONS_KEY, {});
     if (sessions[tenant]) {
+      // Update last access time for this tenant
+      sessions[tenant].lastAccess = new Date().toISOString();
+      storage.set(SESSIONS_KEY, sessions);
       storage.set(CURRENT_SESSION_KEY, tenant);
       return sessions[tenant];
     }

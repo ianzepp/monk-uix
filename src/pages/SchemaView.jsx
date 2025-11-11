@@ -27,6 +27,36 @@ export function SchemaView() {
   const [error, setError] = useState('');
   const [tabsInitialized, setTabsInitialized] = useState(false);
 
+  const loadSchemas = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await api.schemas.list();
+      const schemaList = Array.isArray(data) ? data : [];
+      setSchemas(schemaList);
+      if (schemaList.length > 0) {
+        const initialVisible = resolveVisibleSchemas(schemaList);
+        setVisibleSchemas(initialVisible);
+        const storedSelected = getStoredSelectedSchema(schemaList);
+        const preferredSchema = storedSelected && initialVisible.includes(storedSelected)
+          ? storedSelected
+          : initialVisible.includes(selectedSchema)
+            ? selectedSchema
+            : initialVisible[0];
+        setSelectedSchema(preferredSchema);
+        setTabsInitialized(true);
+      } else {
+        setVisibleSchemas([]);
+        setSelectedSchema(null);
+        setTabsInitialized(true);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load schemas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadSchemas();
   }, []);
@@ -39,6 +69,8 @@ export function SchemaView() {
       setVisibleSchemas([]);
       setTabsInitialized(false);
       setError('');
+      // Reload schemas for new tenant
+      loadSchemas();
     };
 
     // Listen for tenant changes (custom event)
@@ -75,38 +107,6 @@ export function SchemaView() {
       return [schemaList[0]];
     }
   };
-
-  const loadSchemas = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await api.schemas.list();
-      const schemaList = Array.isArray(data) ? data : [];
-      setSchemas(schemaList);
-      if (schemaList.length > 0) {
-        const initialVisible = resolveVisibleSchemas(schemaList);
-        setVisibleSchemas(initialVisible);
-        const storedSelected = getStoredSelectedSchema(schemaList);
-        const preferredSchema = storedSelected && initialVisible.includes(storedSelected)
-          ? storedSelected
-          : initialVisible.includes(selectedSchema)
-            ? selectedSchema
-            : initialVisible[0];
-        setSelectedSchema(preferredSchema);
-        setTabsInitialized(true);
-      } else {
-        setVisibleSchemas([]);
-        setSelectedSchema(null);
-        setTabsInitialized(true);
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to load schemas');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
 
   const loadSchemaDefinition = async (schema) => {
     try {
