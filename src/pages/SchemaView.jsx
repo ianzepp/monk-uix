@@ -6,8 +6,13 @@ import { Header } from '../components/layout/Header';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import './ProjectView.css';
 
-const VISIBLE_SCHEMAS_STORAGE_KEY = 'schemaView.visibleSchemas';
-const LAST_SCHEMA_STORAGE_KEY = 'schemaView.lastSelectedSchema';
+const getTenantStorageKey = (key) => {
+  const currentTenant = authService.getCurrentTenant() || 'default';
+  return `schemaView.${currentTenant}.${key}`;
+};
+
+const VISIBLE_SCHEMAS_STORAGE_KEY = getTenantStorageKey('visibleSchemas');
+const LAST_SCHEMA_STORAGE_KEY = getTenantStorageKey('lastSelectedSchema');
 
 export function SchemaView() {
   const { tenant } = authService.getAuthData();
@@ -24,6 +29,24 @@ export function SchemaView() {
 
   useEffect(() => {
     loadSchemas();
+  }, []);
+
+  // Clear schema state when tenant changes
+  useEffect(() => {
+    const handleTenantChange = () => {
+      setSchemas([]);
+      setSelectedSchema(null);
+      setVisibleSchemas([]);
+      setTabsInitialized(false);
+      setError('');
+    };
+
+    // Listen for tenant changes (custom event)
+    window.addEventListener('tenantChanged', handleTenantChange);
+    
+    return () => {
+      window.removeEventListener('tenantChanged', handleTenantChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -82,6 +105,8 @@ export function SchemaView() {
       setLoading(false);
     }
   };
+
+
 
   const loadSchemaDefinition = async (schema) => {
     try {

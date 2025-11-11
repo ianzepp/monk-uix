@@ -62,6 +62,12 @@ export const authService = {
       localStorage.setItem('monk_auth_token', session.token);
       localStorage.setItem('monk_auth_tenant', session.tenant);
       localStorage.setItem('monk_auth_user', session.username);
+      
+      // Emit custom event for components to listen to
+      window.dispatchEvent(new CustomEvent('tenantChanged', { 
+        detail: { tenant, session } 
+      }));
+      
       return true;
     }
     return false;

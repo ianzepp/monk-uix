@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import { SearchForm } from '../components/find/SearchForm';
 import { ResultsTable } from '../components/find/ResultsTable';
 import './FindView.css';
 
-const SEARCH_RESULTS_KEY = 'findView.searchResults';
-const SEARCH_SCHEMA_KEY = 'findView.selectedSchema';
-const SEARCH_PERFORMED_KEY = 'findView.searchPerformed';
+const getTenantStorageKey = (key) => {
+  const currentTenant = authService.getCurrentTenant() || 'default';
+  return `findView.${currentTenant}.${key}`;
+};
+
+const SEARCH_RESULTS_KEY = getTenantStorageKey('searchResults');
+const SEARCH_SCHEMA_KEY = getTenantStorageKey('selectedSchema');
+const SEARCH_PERFORMED_KEY = getTenantStorageKey('searchPerformed');
 
 export function FindView() {
   const [schemas, setSchemas] = useState([]);
@@ -46,6 +52,23 @@ export function FindView() {
     };
     
     initializeComponent();
+  }, []);
+
+  // Clear search state when tenant changes
+  useEffect(() => {
+    const handleTenantChange = () => {
+      setResults([]);
+      setSearchPerformed(false);
+      setSelectedSchema('');
+      setError('');
+    };
+
+    // Listen for tenant changes (custom event)
+    window.addEventListener('tenantChanged', handleTenantChange);
+    
+    return () => {
+      window.removeEventListener('tenantChanged', handleTenantChange);
+    };
   }, []);
 
   useEffect(() => {
