@@ -24,12 +24,12 @@ function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Navigate to="/schemas" replace />
+              <Navigate to="/data" replace />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/schemas"
+          path="/data"
           element={
             <ProtectedRoute>
               <SchemaView />
@@ -37,14 +37,14 @@ function App() {
           }
         />
         <Route
-          path="/schemas/:schema/:recordId"
+          path="/data/:schema/:recordId"
           element={
             <ProtectedRoute>
               <RecordDetail />
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/schemas" replace />} />
+        <Route path="*" element={<Navigate to="/data" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -15,7 +15,7 @@ export function Header() {
     <header className="header">
       <div className="header-content">
         <div className="header-left">
-          <Link to="/schemas" className="header-logo">
+          <Link to="/data" className="header-logo">
             Monk
           </Link>
         </div>

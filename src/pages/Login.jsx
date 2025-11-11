@@ -17,7 +17,7 @@ export function Login() {
 
     try {
       await authService.login(tenant, user);
-      navigate('/schemas');
+      navigate('/data');
     } catch (err) {
       setError(err.message || 'Authentication failed');
     } finally {

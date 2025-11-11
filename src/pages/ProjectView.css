@@ -1,9 +1,17 @@
 .schema-tabs {
   display: flex;
-  gap: 2px;
+  gap: var(--spacing-sm);
+  align-items: center;
   border-bottom: 2px solid var(--border-color);
   margin-top: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.schema-tabs-list {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
 }
 
 .schema-tab {
@@ -25,6 +33,46 @@
   background-color: var(--white);
   border-top-color: var(--primary-blue);
   color: var(--primary-blue);
+}
+
+.schema-tab.placeholder {
+  cursor: default;
+  color: var(--gray-3);
+  background-color: var(--gray-1);
+}
+
+.schema-tabs-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
+.schema-tabs-controls select {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--white);
+}
+
+.schema-tab-add {
+  border: 1px solid var(--border-color);
+  background-color: var(--white);
+  color: var(--primary-blue);
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.schema-tab-add:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .schema-content {
@@ -53,6 +101,18 @@
 .table-container table {
   width: 100%;
   font-size: 12px;
+}
+
+.table-container th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.table-container th.sortable:hover,
+.table-container th.sortable:focus {
+  text-decoration: underline;
+  color: var(--primary-blue);
 }
 
 .table-container td {

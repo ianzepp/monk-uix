@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
@@ -6,14 +6,21 @@ import { Header } from '../components/layout/Header';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import './ProjectView.css';
 
+const VISIBLE_SCHEMAS_STORAGE_KEY = 'schemaView.visibleSchemas';
+const LAST_SCHEMA_STORAGE_KEY = 'schemaView.lastSelectedSchema';
+
 export function SchemaView() {
   const { tenant } = authService.getAuthData();
   const [schemas, setSchemas] = useState([]);
   const [selectedSchema, setSelectedSchema] = useState(null);
   const [records, setRecords] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ column: null, direction: 'asc' });
+  const [visibleSchemas, setVisibleSchemas] = useState([]);
+  const [pendingSchemaToAdd, setPendingSchemaToAdd] = useState('');
   const [schemaDefinition, setSchemaDefinition] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [tabsInitialized, setTabsInitialized] = useState(false);
 
   useEffect(() => {
     loadSchemas();
@@ -26,6 +33,26 @@ export function SchemaView() {
     }
   }, [selectedSchema]);
 
+  const resolveVisibleSchemas = (schemaList) => {
+    if (schemaList.length === 0) return [];
+
+    if (typeof window === 'undefined') {
+      return [schemaList[0]];
+    }
+
+    try {
+      const stored = window.sessionStorage.getItem(VISIBLE_SCHEMAS_STORAGE_KEY);
+      if (!stored) return [schemaList[0]];
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return [schemaList[0]];
+      const filtered = parsed.filter((schema) => schemaList.includes(schema));
+      return filtered.length > 0 ? filtered : [schemaList[0]];
+    } catch (err) {
+      console.warn('Unable to restore schema tabs from sessionStorage', err);
+      return [schemaList[0]];
+    }
+  };
+
   const loadSchemas = async () => {
     try {
       setLoading(true);
@@ -34,7 +61,20 @@ export function SchemaView() {
       const schemaList = Array.isArray(data) ? data : [];
       setSchemas(schemaList);
       if (schemaList.length > 0) {
-        setSelectedSchema(schemaList[0]);
+        const initialVisible = resolveVisibleSchemas(schemaList);
+        setVisibleSchemas(initialVisible);
+        const storedSelected = getStoredSelectedSchema(schemaList);
+        const preferredSchema = storedSelected && initialVisible.includes(storedSelected)
+          ? storedSelected
+          : initialVisible.includes(selectedSchema)
+            ? selectedSchema
+            : initialVisible[0];
+        setSelectedSchema(preferredSchema);
+        setTabsInitialized(true);
+      } else {
+        setVisibleSchemas([]);
+        setSelectedSchema(null);
+        setTabsInitialized(true);
       }
     } catch (err) {
       setError(err.message || 'Failed to load schemas');
@@ -66,15 +106,27 @@ export function SchemaView() {
     }
   };
 
+  const getStoredSelectedSchema = (schemaList) => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = window.sessionStorage.getItem(LAST_SCHEMA_STORAGE_KEY);
+      if (!stored) return null;
+      return schemaList.includes(stored) ? stored : null;
+    } catch (err) {
+      console.warn('Unable to restore selected schema from sessionStorage', err);
+      return null;
+    }
+  };
+
   const getDisplayColumns = () => {
     if (!records || records.length === 0) return [];
 
     const firstRecord = records[0];
     const allKeys = Object.keys(firstRecord);
 
-    const columns = ['id'];
+    const columns = [];
 
-    const priorityFields = ['name', 'title', 'email', 'status', 'type'];
+    const priorityFields = ['name', 'title', 'email', 'status', 'type', 'author', 'text', 'content'];
     priorityFields.forEach(field => {
       if (allKeys.includes(field) && !columns.includes(field)) {
         columns.push(field);
@@ -83,6 +135,7 @@ export function SchemaView() {
 
     allKeys.forEach(key => {
       if (columns.length >= 6) return;
+      if (key === 'id' || key.startsWith('access_')) return;
       if (!key.startsWith('_') &&
           !key.includes('created_at') &&
           !key.includes('updated_at') &&
@@ -106,8 +159,95 @@ export function SchemaView() {
     return String(value);
   };
 
+  const sortedRecords = useMemo(() => {
+    if (!sortConfig.column) return records;
+
+    const sorted = [...records];
+    sorted.sort((a, b) => {
+      const aVal = a[sortConfig.column];
+      const bVal = b[sortConfig.column];
+
+      if (aVal === bVal) return 0;
+      if (aVal === undefined || aVal === null) return 1;
+      if (bVal === undefined || bVal === null) return -1;
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+
+      if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [records, sortConfig]);
+
+  const availableSchemas = useMemo(
+    () => schemas.filter((schema) => !visibleSchemas.includes(schema)),
+    [schemas, visibleSchemas]
+  );
+
+  useEffect(() => {
+    if (!tabsInitialized || typeof window === 'undefined') return;
+    if (visibleSchemas.length > 0) {
+      window.sessionStorage.setItem(
+        VISIBLE_SCHEMAS_STORAGE_KEY,
+        JSON.stringify(visibleSchemas)
+      );
+    } else {
+      window.sessionStorage.removeItem(VISIBLE_SCHEMAS_STORAGE_KEY);
+    }
+  }, [visibleSchemas, tabsInitialized]);
+
+  useEffect(() => {
+    if (!tabsInitialized || typeof window === 'undefined') return;
+    if (selectedSchema) {
+      window.sessionStorage.setItem(LAST_SCHEMA_STORAGE_KEY, selectedSchema);
+    } else {
+      window.sessionStorage.removeItem(LAST_SCHEMA_STORAGE_KEY);
+    }
+  }, [selectedSchema, tabsInitialized]);
+
+  useEffect(() => {
+    if (pendingSchemaToAdd && !availableSchemas.includes(pendingSchemaToAdd)) {
+      setPendingSchemaToAdd('');
+    }
+  }, [availableSchemas, pendingSchemaToAdd]);
+
+  useEffect(() => {
+    if (selectedSchema || visibleSchemas.length === 0) return;
+    setSelectedSchema(visibleSchemas[0]);
+  }, [visibleSchemas, selectedSchema]);
+
+  const handleAddSchemaTab = () => {
+    if (!pendingSchemaToAdd) return;
+    setVisibleSchemas((prev) => {
+      if (prev.includes(pendingSchemaToAdd)) return prev;
+      return [...prev, pendingSchemaToAdd];
+    });
+    setSelectedSchema(pendingSchemaToAdd);
+    setPendingSchemaToAdd('');
+  };
+
+  const handleSort = (column) => {
+    setSortConfig((prev) => {
+      if (prev.column === column) {
+        return {
+          column,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc',
+        };
+      }
+
+      return { column, direction: 'asc' };
+    });
+  };
+
   const breadcrumbs = [
-    { label: 'Home', path: '/schemas' },
+    { label: 'Home', path: '/data' },
     { label: tenant, path: null },
   ];
 
@@ -130,15 +270,44 @@ export function SchemaView() {
         ) : (
           <>
             <div className="schema-tabs">
-              {schemas.map((schema) => (
-                <button
-                  key={schema}
-                  className={`schema-tab ${selectedSchema === schema ? 'active' : ''}`}
-                  onClick={() => setSelectedSchema(schema)}
+              <div className="schema-tabs-list">
+                {visibleSchemas.map((schema) => (
+                  <button
+                    key={schema}
+                    className={`schema-tab ${selectedSchema === schema ? 'active' : ''}`}
+                    onClick={() => setSelectedSchema(schema)}
+                  >
+                    {schema}
+                  </button>
+                ))}
+                {visibleSchemas.length === 0 && (
+                  <div className="schema-tab placeholder">Schemas</div>
+                )}
+              </div>
+              <div className="schema-tabs-controls">
+                <select
+                  value={pendingSchemaToAdd}
+                  onChange={(event) => setPendingSchemaToAdd(event.target.value)}
+                  disabled={availableSchemas.length === 0}
                 >
-                  {schema}
+                  <option value="" disabled>
+                    {availableSchemas.length === 0 ? 'All schemas pinned' : 'Choose schema'}
+                  </option>
+                  {availableSchemas.map((schema) => (
+                    <option key={schema} value={schema}>
+                      {schema}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="schema-tab-add"
+                  onClick={handleAddSchemaTab}
+                  disabled={!pendingSchemaToAdd}
+                  aria-label="Add schema tab"
+                >
+                  +
                 </button>
-              ))}
+              </div>
             </div>
 
             <div className="schema-content">
@@ -165,26 +334,39 @@ export function SchemaView() {
                       <table>
                         <thead>
                           <tr>
-                            {displayColumns.map((col) => (
-                              <th key={col}>{col}</th>
-                            ))}
                             <th>Actions</th>
+                            {displayColumns.map((col) => (
+                              <th
+                                key={col}
+                                onClick={() => handleSort(col)}
+                                className={`sortable ${
+                                  sortConfig.column === col ? `sorted ${sortConfig.direction}` : ''
+                                }`}
+                                role="button"
+                                tabIndex={0}
+                              >
+                                {col}
+                                {sortConfig.column === col && (
+                                  <span className="sort-indicator">{sortConfig.direction === 'asc' ? ' ▲' : ' ▼'}</span>
+                                )}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {records.map((record) => (
+                          {sortedRecords.map((record) => (
                             <tr key={record.id}>
-                              {displayColumns.map((col) => (
-                                <td key={col}>{formatValue(record[col])}</td>
-                              ))}
                               <td>
                                 <Link
-                                  to={`/schemas/${selectedSchema}/${record.id}`}
+                                  to={`/data/${selectedSchema}/${record.id}`}
                                   className="btn btn-sm btn-secondary"
                                 >
                                   View
                                 </Link>
                               </td>
+                              {displayColumns.map((col) => (
+                                <td key={col}>{formatValue(record[col])}</td>
+                              ))}
                             </tr>
                           ))}
                         </tbody>

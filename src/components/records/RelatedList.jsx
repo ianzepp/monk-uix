@@ -42,11 +42,10 @@ export function RelatedList({ parentSchema, parentId, relationshipName, relatedS
     const firstRecord = records[0];
     const allKeys = Object.keys(firstRecord);
 
-    // Always show ID first
-    const columns = ['id'];
+    const columns = [];
 
-    // Add other important fields (max 4 columns total for related lists)
-    const priorityFields = ['name', 'title', 'text', 'email', 'status', 'author'];
+    // Add important fields (max 4 columns total for related lists)
+    const priorityFields = ['name', 'title', 'text', 'content', 'email', 'status', 'author'];
     priorityFields.forEach(field => {
       if (columns.length >= 4) return;
       if (allKeys.includes(field) && !columns.includes(field)) {
@@ -57,6 +56,7 @@ export function RelatedList({ parentSchema, parentId, relationshipName, relatedS
     // Add remaining fields
     allKeys.forEach(key => {
       if (columns.length >= 4) return;
+      if (key === 'id' || key.startsWith('access_')) return;
       if (!key.startsWith('_') &&
           !key.includes('created_at') &&
           !key.includes('updated_at') &&
@@ -127,26 +127,26 @@ export function RelatedList({ parentSchema, parentId, relationshipName, relatedS
         <table>
           <thead>
             <tr>
+              <th>Actions</th>
               {displayColumns.map((col) => (
                 <th key={col}>{col}</th>
               ))}
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {records.map((record) => (
               <tr key={record.id}>
-                {displayColumns.map((col) => (
-                  <td key={col}>{formatValue(record[col])}</td>
-                ))}
                 <td>
                   <Link
-                    to={`/schemas/${relatedSchema}/${record.id}`}
+                    to={`/data/${relatedSchema}/${record.id}`}
                     className="btn btn-sm btn-secondary"
                   >
                     View
                   </Link>
                 </td>
+                {displayColumns.map((col) => (
+                  <td key={col}>{formatValue(record[col])}</td>
+                ))}
               </tr>
             ))}
           </tbody>

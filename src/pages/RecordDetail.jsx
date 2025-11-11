@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
@@ -105,14 +105,29 @@ export function RecordDetail() {
 
     try {
       await api.data.delete(schema, recordId);
-      navigate('/schemas');
+      navigate('/data');
     } catch (err) {
       setError(err.message || 'Failed to delete record');
     }
   };
 
-  const formatValue = (value) => {
+  const formatValue = (fieldName, value) => {
     if (value === null || value === undefined) return '-';
+
+    // Check if this field has a relationship defined
+    if (schemaDefinition && schemaDefinition.properties) {
+      const fieldDef = schemaDefinition.properties[fieldName];
+      const relationship = fieldDef?.['x-monk-relationship'] || fieldDef?.['relationship'];
+
+      if (relationship && relationship.schema && typeof value === 'string') {
+        return (
+          <Link to={`/data/${relationship.schema}/${value}`} className="field-link">
+            {value.substring(0, 8)}...
+          </Link>
+        );
+      }
+    }
+
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
     if (typeof value === 'object') {
       return <pre className="json-value">{JSON.stringify(value, null, 2)}</pre>;
@@ -126,12 +141,13 @@ export function RecordDetail() {
   const getFieldGroups = () => {
     if (!record) return [];
 
-    const systemFields = ['id', 'created_at', 'updated_at', 'trashed_at', 'deleted_at'];
+    const systemFields = ['created_at', 'updated_at', 'trashed_at', 'deleted_at'];
     const userFields = [];
     const metaFields = [];
 
     Object.keys(record).forEach(key => {
-      if (systemFields.includes(key)) {
+      if (key === 'id') return; // Skip ID, will show in header
+      if (systemFields.includes(key) || key.startsWith('access_')) {
         metaFields.push(key);
       } else {
         userFields.push(key);
@@ -140,14 +156,14 @@ export function RecordDetail() {
 
     return [
       { title: 'Details', fields: userFields },
-      { title: 'System', fields: metaFields },
+      { title: 'System', fields: metaFields, id: record.id },
     ];
   };
 
   const breadcrumbs = [
-    { label: 'Home', path: '/schemas' },
-    { label: tenant, path: '/schemas' },
-    { label: schema, path: '/schemas' },
+    { label: 'Home', path: '/data' },
+    { label: tenant, path: '/data' },
+    { label: schema, path: '/data' },
     { label: `#${recordId.substring(0, 8)}`, path: null },
   ];
 
@@ -191,13 +207,16 @@ export function RecordDetail() {
               <>
                 {fieldGroups.map((group) => (
                   <div key={group.title} className="field-group">
-                    <h3>{group.title}</h3>
+                    <div className="field-group-header">
+                      <h3>{group.title}</h3>
+                      {group.id && <span className="field-group-id">ID: {group.id}</span>}
+                    </div>
                     <div className="field-grid">
                       {group.fields.map((field) => (
                         <div key={field} className="field-item">
                           <label className="field-label">{field}</label>
                           <div className="field-value">
-                            {formatValue(record[field])}
+                            {formatValue(field, record[field])}
                           </div>
                         </div>
                       ))}
