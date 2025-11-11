@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
+import { RelatedList } from '../components/records/RelatedList';
 import './RecordDetail.css';
 
 export function RecordDetail() {
@@ -12,6 +13,8 @@ export function RecordDetail() {
   const navigate = useNavigate();
   const [record, setRecord] = useState(null);
   const [schemaDefinition, setSchemaDefinition] = useState(null);
+  const [allSchemas, setAllSchemas] = useState([]);
+  const [relationships, setRelationships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showJson, setShowJson] = useState(false);
@@ -19,7 +22,14 @@ export function RecordDetail() {
   useEffect(() => {
     loadRecord();
     loadSchemaDefinition();
+    loadAllSchemas();
   }, [schema, recordId]);
+
+  useEffect(() => {
+    if (allSchemas.length > 0) {
+      findRelationships();
+    }
+  }, [allSchemas, schema]);
 
   const loadRecord = async () => {
     try {
@@ -41,6 +51,51 @@ export function RecordDetail() {
     } catch (err) {
       console.error('Failed to load schema definition:', err);
     }
+  };
+
+  const loadAllSchemas = async () => {
+    try {
+      const schemaNames = await api.schemas.list();
+      const schemas = [];
+
+      for (const name of schemaNames) {
+        try {
+          const def = await api.schemas.get(name);
+          schemas.push({ name, definition: def });
+        } catch (err) {
+          console.error(`Failed to load schema ${name}:`, err);
+        }
+      }
+
+      setAllSchemas(schemas);
+    } catch (err) {
+      console.error('Failed to load schemas:', err);
+    }
+  };
+
+  const findRelationships = () => {
+    const foundRelationships = [];
+
+    // Find schemas that have fields pointing to the current schema
+    allSchemas.forEach(({ name, definition }) => {
+      if (name === schema) return; // Skip self
+
+      const properties = definition.properties || {};
+
+      Object.entries(properties).forEach(([fieldName, fieldDef]) => {
+        const relationship = fieldDef['x-monk-relationship'] || fieldDef['relationship'];
+
+        if (relationship && relationship.schema === schema) {
+          foundRelationships.push({
+            relationshipName: relationship.name || name,
+            relatedSchema: name,
+            foreignKeyField: fieldName
+          });
+        }
+      });
+    });
+
+    setRelationships(foundRelationships);
   };
 
   const handleDelete = async () => {
@@ -149,6 +204,20 @@ export function RecordDetail() {
                     </div>
                   </div>
                 ))}
+
+                {relationships.length > 0 && (
+                  <div className="related-lists-section">
+                    {relationships.map((rel) => (
+                      <RelatedList
+                        key={rel.relatedSchema}
+                        parentSchema={schema}
+                        parentId={recordId}
+                        relationshipName={rel.relationshipName}
+                        relatedSchema={rel.relatedSchema}
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </>
