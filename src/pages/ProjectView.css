@@ -1,0 +1,68 @@
+.schema-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 2px solid var(--border-color);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.schema-tab {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--gray-1);
+  border: none;
+  border-top: 2px solid transparent;
+  color: var(--gray-4);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schema-tab:hover {
+  background-color: var(--gray-2);
+}
+
+.schema-tab.active {
+  background-color: var(--white);
+  border-top-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.schema-content {
+  background: var(--white);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+}
+
+.schema-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.schema-stats {
+  color: var(--gray-3);
+  font-size: 12px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.table-container table {
+  width: 100%;
+  font-size: 12px;
+}
+
+.table-container td {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-container .btn {
+  padding: 4px 8px;
+  font-size: 11px;
+}

@@ -1,0 +1,48 @@
+:root {
+  /* Salesforce Color Palette */
+  --primary-blue: #0070d2;
+  --dark-blue: #00396b;
+  --light-blue: #e8f3f8;
+
+  /* Grays */
+  --gray-1: #f3f3f3;
+  --gray-2: #dddddd;
+  --gray-3: #696969;
+  --gray-4: #333333;
+
+  /* Status Colors */
+  --success: #04844b;
+  --warning: #ffb75d;
+  --error: #c23934;
+  --white: #ffffff;
+
+  /* Typography */
+  --font-family: "Salesforce Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-size-base: 13px;
+  --font-size-h1: 18px;
+  --font-size-h2: 16px;
+  --font-size-h3: 14px;
+  --line-height: 1.5;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Borders */
+  --border-radius: 3px;
+  --border-color: var(--gray-2);
+  --border-width: 1px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+  /* Layout */
+  --header-height: 50px;
+  --sidebar-width: 220px;
+  --max-content-width: 1400px;
+}

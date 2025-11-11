@@ -1,0 +1,28 @@
+.breadcrumbs {
+  padding: var(--spacing-sm) 0;
+  font-size: 12px;
+  color: var(--gray-3);
+}
+
+.breadcrumb-item {
+  display: inline;
+}
+
+.breadcrumb-separator {
+  margin: 0 var(--spacing-xs);
+  color: var(--gray-3);
+}
+
+.breadcrumb-link {
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-current {
+  color: var(--gray-4);
+  font-weight: 600;
+}
