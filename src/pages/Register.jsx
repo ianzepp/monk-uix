@@ -1,40 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth';
 import './Login.css';
 
-export function Login() {
+export function Register() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [tenant, setTenant] = useState('');
   const [user, setUser] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isAddingTenant, setIsAddingTenant] = useState(false);
-
-  useEffect(() => {
-    // Check if this is adding a tenant vs initial login
-    const addParam = searchParams.get('add');
-    setIsAddingTenant(!!addParam);
-    
-    // Pre-fill from environment if initial login
-    if (!addParam) {
-      setTenant(import.meta.env.VITE_DEFAULT_TENANT || '');
-      setUser(import.meta.env.VITE_DEFAULT_USER || '');
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    
+    if (!tenant.trim() || !user.trim()) {
+      setError('Both tenant and username are required');
+      return;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
-      await authService.login(tenant, user);
-      // Always redirect to /data after successful login
+      await authService.register(tenant.trim(), user.trim());
       navigate('/data');
     } catch (err) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -44,47 +35,49 @@ export function Login() {
     <div className="login-container">
       <div className="login-card">
         <h1>Monk UI</h1>
-        <p className="login-subtitle">
-          {isAddingTenant ? 'Add another tenant' : 'Sign in to your tenant'}
-        </p>
+        <p className="login-subtitle">Create a new tenant</p>
 
         {error && <div className="error-message">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="tenant">Tenant</label>
+            <label htmlFor="tenant">Tenant Name</label>
             <input
               id="tenant"
               type="text"
               value={tenant}
               onChange={(e) => setTenant(e.target.value)}
               placeholder="Enter tenant name"
-              required
               disabled={loading}
+              required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="user">User</label>
+            <label htmlFor="user">Username</label>
             <input
               id="user"
               type="text"
               value={user}
               onChange={(e) => setUser(e.target.value)}
               placeholder="Enter username"
-              required
               disabled={loading}
+              required
             />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-            {loading ? <span className="loading"></span> : 'Sign In'}
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create Tenant'}
           </button>
         </form>
 
         <div className="login-footer">
-          <Link to="/register" className="btn-link">
-            Create New Tenant
+          <Link to="/login" className="btn-link">
+            Back to Login
           </Link>
         </div>
       </div>

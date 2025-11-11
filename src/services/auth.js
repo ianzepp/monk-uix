@@ -2,6 +2,30 @@ import { api } from './api.js';
 import { tenantSessions } from './tenantSessions.js';
 
 export const authService = {
+  register: async (tenant, username) => {
+    const response = await api.auth.register(tenant, username);
+
+    if (response.token) {
+      tenantSessions.addSession(
+        tenant,
+        username,
+        response.token,
+        {
+          username,
+          tenant,
+          database: response.database,
+          access: 'full'
+        }
+      );
+
+      localStorage.setItem('monk_auth_token', response.token);
+      localStorage.setItem('monk_auth_tenant', tenant);
+      localStorage.setItem('monk_auth_user', username);
+    }
+
+    return response;
+  },
+
   login: async (tenant, username) => {
     const response = await api.auth.login(tenant, username);
 

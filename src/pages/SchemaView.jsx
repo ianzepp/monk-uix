@@ -22,8 +22,11 @@ export function SchemaView() {
   const [sortConfig, setSortConfig] = useState({ column: null, direction: 'asc' });
   const [visibleSchemas, setVisibleSchemas] = useState([]);
   const [pendingSchemaToAdd, setPendingSchemaToAdd] = useState('');
-  const [schemaDefinition, setSchemaDefinition] = useState(null);
+
   const [loading, setLoading] = useState(true);
+  // Future-proofing: Schema definition will be used for displaying field metadata, validation rules, etc.
+  // eslint-disable-next-line
+  const [schemaDefinition, setSchemaDefinition] = useState(null);
   const [error, setError] = useState('');
   const [tabsInitialized, setTabsInitialized] = useState(false);
 

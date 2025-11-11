@@ -45,6 +45,13 @@ export const apiCall = async (endpoint, options = {}) => {
 
 export const api = {
   auth: {
+    register: async (tenant, username) => {
+      return apiCall('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ tenant, username }),
+      });
+    },
+
     login: async (tenant, username) => {
       return apiCall('/auth/login', {
         method: 'POST',

@@ -10,8 +10,11 @@ export function ProjectView() {
   const [schemas, setSchemas] = useState([]);
   const [selectedSchema, setSelectedSchema] = useState(null);
   const [records, setRecords] = useState([]);
-  const [schemaDefinition, setSchemaDefinition] = useState(null);
+
   const [loading, setLoading] = useState(true);
+  // Future-proofing: Schema definition will be used for displaying field metadata, validation rules, etc.
+  // eslint-disable-next-line
+  const [schemaDefinition, setSchemaDefinition] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
