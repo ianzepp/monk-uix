@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { authService } from '../../services/auth';
 import { TenantSelector } from './TenantSelector';
+import { NavigationMenu } from './NavigationMenu';
 import './Header.css';
 
 export function Header() {
@@ -14,32 +15,21 @@ export function Header() {
   return (
     <header className="header">
       <div className="header-content">
-        <div className="header-left">
-          <Link to="/data" className="header-logo">
-            Monk
-          </Link>
-        </div>
+        <Link to="/data" className="header-logo">
+          Monk
+        </Link>
 
-        <div className="header-center">
-          {isAuthenticated && (
-            <nav className="header-nav">
-              <Link to="/data" className="nav-link">Data</Link>
-              <Link to="/find" className="nav-link">Search</Link>
-              <Link to="/file" className="nav-link">File</Link>
-            </nav>
-          )}
-        </div>
-
-        <div className="header-right">
-          {isAuthenticated && (
-            <>
-              <TenantSelector />
-              <button onClick={handleLogout} className="btn btn-secondary btn-sm">
-                Logout
-              </button>
-            </>
-          )}
-        </div>
+        {isAuthenticated && (
+          <div className="header-actions">
+            <div className="header-logo-spacer" aria-hidden="true" />
+            <TenantSelector />
+            <NavigationMenu />
+            <div className="header-flex-spacer" aria-hidden="true" />
+            <button onClick={handleLogout} className="btn btn-secondary btn-sm">
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
-import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import { SearchForm } from '../components/find/SearchForm';
 import { ResultsTable } from '../components/find/ResultsTable';
 import './FindView.css';
@@ -192,18 +191,10 @@ export function FindView() {
     }
   };
 
-  const breadcrumbs = [
-    { label: tenant, path: '/data' },
-    { label: 'Search', path: null },
-  ];
-
-
   return (
     <>
       <Header />
       <div className="container">
-        <Breadcrumbs items={breadcrumbs} />
-
         <h1>Advanced Search</h1>
 
         {error && <div className="error-message">{error}</div>}

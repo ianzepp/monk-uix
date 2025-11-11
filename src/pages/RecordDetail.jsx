@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
-import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import { RelatedList } from '../components/records/RelatedList';
 import './RecordDetail.css';
 
@@ -159,20 +158,10 @@ export function RecordDetail() {
 
   const shortRecordId = useMemo(() => (recordId ? recordId.substring(0, 8) : ''), [recordId]);
 
-  const breadcrumbs = useMemo(() => ([
-    { label: tenant, path: '/data' },
-    { label: 'Data', path: '/data' },
-    { label: schema, path: `/data/${schema}` },
-    { label: `#${shortRecordId}`, path: null },
-  ]), [tenant, schema, shortRecordId]);
-
   return (
-
     <>
       <Header />
       <div className="container">
-        <Breadcrumbs items={breadcrumbs} />
-
         {error && <div className="error-message">{error}</div>}
 
         {loading ? (

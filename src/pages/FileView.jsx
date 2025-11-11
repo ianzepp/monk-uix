@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
-import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import './FileView.css';
 
 const ROOT_PATH = '/';
@@ -515,17 +514,10 @@ export function FileView() {
     navigate(viewTarget.route);
   };
 
-  const breadcrumbs = [
-    { label: tenant, path: '/data' },
-    { label: 'File', path: null },
-  ];
-
   return (
     <>
       <Header />
       <div className="container">
-        <Breadcrumbs items={breadcrumbs} />
-
         <div className="file-terminal">
           <div className="terminal-prompt">
             <div className="prompt-header">

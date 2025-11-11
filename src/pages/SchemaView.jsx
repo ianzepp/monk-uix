@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
-import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import './SchemaView.css';
 
 const getTenantStorageKey = (tenantId, key) => {
@@ -300,19 +299,12 @@ export function SchemaView() {
     });
   };
 
-  const breadcrumbs = [
-    { label: tenant, path: '/data' },
-    { label: 'Data', path: null },
-  ];
-
   const displayColumns = getDisplayColumns();
 
   return (
     <>
       <Header />
       <div className="container">
-        <Breadcrumbs items={breadcrumbs} />
-
         <h1>{tenant}</h1>
 
         {error && <div className="error-message">{error}</div>}
