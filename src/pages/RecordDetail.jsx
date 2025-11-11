@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
@@ -19,19 +19,7 @@ export function RecordDetail() {
   const [error, setError] = useState('');
   const [showJson, setShowJson] = useState(false);
 
-  useEffect(() => {
-    loadRecord();
-    loadSchemaDefinition();
-    loadAllSchemas();
-  }, [schema, recordId]);
-
-  useEffect(() => {
-    if (allSchemas.length > 0) {
-      findRelationships();
-    }
-  }, [allSchemas, schema]);
-
-  const loadRecord = async () => {
+  const loadRecord = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -39,64 +27,74 @@ export function RecordDetail() {
       setRecord(data);
     } catch (err) {
       setError(err.message || 'Failed to load record');
+      setRecord(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [schema, recordId]);
 
-  const loadSchemaDefinition = async () => {
+  const loadSchemaDefinition = useCallback(async () => {
     try {
       const definition = await api.schemas.get(schema);
       setSchemaDefinition(definition);
-    } catch (err) {
-      console.error('Failed to load schema definition:', err);
+    } catch {
+      setSchemaDefinition(null);
     }
-  };
+  }, [schema]);
 
-  const loadAllSchemas = async () => {
+  const loadAllSchemas = useCallback(async () => {
     try {
       const schemaNames = await api.schemas.list();
       const schemas = [];
 
       for (const name of schemaNames) {
         try {
-          const def = await api.schemas.get(name);
-          schemas.push({ name, definition: def });
-        } catch (err) {
-          console.error(`Failed to load schema ${name}:`, err);
+          const definition = await api.schemas.get(name);
+          schemas.push({ name, definition });
+        } catch {
+          // Ignore failures for individual schema loads
         }
       }
 
       setAllSchemas(schemas);
-    } catch (err) {
-      console.error('Failed to load schemas:', err);
+    } catch {
+      setAllSchemas([]);
     }
-  };
+  }, []);
 
-  const findRelationships = () => {
+  const findRelationships = useCallback(() => {
     const foundRelationships = [];
 
-    // Find schemas that have fields pointing to the current schema
     allSchemas.forEach(({ name, definition }) => {
-      if (name === schema) return; // Skip self
+      if (name === schema) return;
 
-      const properties = definition.properties || {};
+      const properties = definition?.properties || {};
 
       Object.entries(properties).forEach(([fieldName, fieldDef]) => {
-        const relationship = fieldDef['x-monk-relationship'] || fieldDef['relationship'];
+        const relationship = fieldDef?.['x-monk-relationship'] || fieldDef?.relationship;
 
         if (relationship && relationship.schema === schema) {
           foundRelationships.push({
             relationshipName: relationship.name || name,
             relatedSchema: name,
-            foreignKeyField: fieldName
+            foreignKeyField: fieldName,
           });
         }
       });
     });
 
     setRelationships(foundRelationships);
-  };
+  }, [allSchemas, schema]);
+
+  useEffect(() => {
+    loadRecord();
+    loadSchemaDefinition();
+    loadAllSchemas();
+  }, [loadRecord, loadSchemaDefinition, loadAllSchemas]);
+
+  useEffect(() => {
+    findRelationships();
+  }, [findRelationships]);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this record?')) {
@@ -111,21 +109,18 @@ export function RecordDetail() {
     }
   };
 
-  const formatValue = (fieldName, value) => {
+  const formatValue = useCallback((fieldName, value) => {
     if (value === null || value === undefined) return '-';
 
-    // Check if this field has a relationship defined
-    if (schemaDefinition && schemaDefinition.properties) {
-      const fieldDef = schemaDefinition.properties[fieldName];
-      const relationship = fieldDef?.['x-monk-relationship'] || fieldDef?.['relationship'];
+    const fieldDefinition = schemaDefinition?.properties?.[fieldName];
+    const relationship = fieldDefinition?.['x-monk-relationship'] || fieldDefinition?.relationship;
 
-      if (relationship && relationship.schema && typeof value === 'string') {
-        return (
-          <Link to={`/data/${relationship.schema}/${value}`} className="field-link">
-            {value.substring(0, 8)}...
-          </Link>
-        );
-      }
+    if (relationship && relationship.schema && typeof value === 'string') {
+      return (
+        <Link to={`/data/${relationship.schema}/${value}`} className="field-link">
+          {value.substring(0, 8)}...
+        </Link>
+      );
     }
 
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -136,17 +131,19 @@ export function RecordDetail() {
       return new Date(value).toLocaleString();
     }
     return String(value);
-  };
+  }, [schemaDefinition]);
 
-  const getFieldGroups = () => {
-    if (!record) return [];
+  const fieldGroups = useMemo(() => {
+    if (!record) {
+      return [];
+    }
 
     const systemFields = ['created_at', 'updated_at', 'trashed_at', 'deleted_at'];
     const userFields = [];
     const metaFields = [];
 
-    Object.keys(record).forEach(key => {
-      if (key === 'id') return; // Skip ID, will show in header
+    Object.keys(record).forEach((key) => {
+      if (key === 'id') return;
       if (systemFields.includes(key) || key.startsWith('access_')) {
         metaFields.push(key);
       } else {
@@ -158,18 +155,19 @@ export function RecordDetail() {
       { title: 'Details', fields: userFields },
       { title: 'System', fields: metaFields, id: record.id },
     ];
-  };
+  }, [record]);
 
-  const breadcrumbs = [
+  const shortRecordId = useMemo(() => (recordId ? recordId.substring(0, 8) : ''), [recordId]);
+
+  const breadcrumbs = useMemo(() => ([
     { label: tenant, path: '/data' },
     { label: 'Data', path: '/data' },
     { label: schema, path: `/data/${schema}` },
-    { label: `#${recordId.substring(0, 8)}`, path: null },
-  ];
-
-  const fieldGroups = getFieldGroups();
+    { label: `#${shortRecordId}`, path: null },
+  ]), [tenant, schema, shortRecordId]);
 
   return (
+
     <>
       <Header />
       <div className="container">
@@ -185,7 +183,7 @@ export function RecordDetail() {
         ) : record ? (
           <>
             <div className="record-header">
-              <h1>{schema} #{recordId.substring(0, 8)}</h1>
+              <h1>{schema} #{shortRecordId}</h1>
               <div className="record-actions">
                 <button
                   onClick={() => setShowJson(!showJson)}

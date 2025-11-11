@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
@@ -8,14 +8,10 @@ import { SearchForm } from '../components/find/SearchForm';
 import { ResultsTable } from '../components/find/ResultsTable';
 import './FindView.css';
 
-const getTenantStorageKey = (key) => {
-  const currentTenant = authService.getCurrentTenant() || 'default';
-  return `findView.${currentTenant}.${key}`;
+const getTenantStorageKey = (tenantId, key) => {
+  const safeTenant = tenantId || 'default';
+  return `findView.${safeTenant}.${key}`;
 };
-
-const SEARCH_RESULTS_KEY = getTenantStorageKey('searchResults');
-const SEARCH_SCHEMA_KEY = getTenantStorageKey('selectedSchema');
-const SEARCH_PERFORMED_KEY = getTenantStorageKey('searchPerformed');
 
 export function FindView() {
   const [schemas, setSchemas] = useState([]);
@@ -25,6 +21,11 @@ export function FindView() {
   const [error, setError] = useState('');
   const [searchPerformed, setSearchPerformed] = useState(false);
   const { tenant } = authService.getAuthData();
+  const storageKeys = useMemo(() => ({
+    results: getTenantStorageKey(tenant, 'searchResults'),
+    schema: getTenantStorageKey(tenant, 'selectedSchema'),
+    performed: getTenantStorageKey(tenant, 'searchPerformed'),
+  }), [tenant]);
 
   const loadSchemas = useCallback(async () => {
     try {
@@ -32,28 +33,80 @@ export function FindView() {
       const data = await api.schemas.list();
       const schemaList = Array.isArray(data) ? data : [];
       setSchemas(schemaList);
-      
-      // Only set default schema if we don't have a saved one
-      const savedSchema = sessionStorage.getItem(SEARCH_SCHEMA_KEY);
-      if (schemaList.length > 0 && !selectedSchema && !savedSchema) {
-        setSelectedSchema(schemaList[0]);
+
+      if (schemaList.length === 0) {
+        setSelectedSchema('');
+        return;
       }
+
+      let storedSelection = null;
+
+      if (typeof window !== 'undefined') {
+        try {
+          storedSelection = window.sessionStorage.getItem(storageKeys.schema);
+        } catch {
+          // Ignore storage read issues and fall back to defaults
+        }
+      }
+
+      setSelectedSchema((current) => {
+        if (storedSelection && schemaList.includes(storedSelection)) {
+          return storedSelection;
+        }
+
+        if (current && schemaList.includes(current)) {
+          return current;
+        }
+
+        return schemaList[0];
+      });
     } catch (err) {
       setError(err.message || 'Failed to load schemas');
     }
-  }, []);
+  }, [storageKeys.schema]);
+
+  const restoreSearchState = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const savedResults = window.sessionStorage.getItem(storageKeys.results);
+      if (savedResults) {
+        try {
+          const parsedResults = JSON.parse(savedResults);
+          setResults(Array.isArray(parsedResults) ? parsedResults : []);
+        } catch {
+          setResults([]);
+        }
+      }
+
+      const savedSchema = window.sessionStorage.getItem(storageKeys.schema);
+      if (savedSchema) {
+        setSelectedSchema(savedSchema);
+      }
+
+      const savedPerformed = window.sessionStorage.getItem(storageKeys.performed);
+      if (savedPerformed) {
+        try {
+          setSearchPerformed(Boolean(JSON.parse(savedPerformed)));
+        } catch {
+          setSearchPerformed(false);
+        }
+      }
+    } catch {
+      // Ignore restore errors
+    }
+  }, [storageKeys]);
 
   useEffect(() => {
     const initializeComponent = async () => {
       await loadSchemas();
-      // Small delay to ensure state is set after schemas load
-      setTimeout(() => {
-        restoreSearchState();
-      }, 100);
+      restoreSearchState();
     };
-    
+
     initializeComponent();
-  }, []);
+  }, [loadSchemas, restoreSearchState]);
 
   // Clear search state when tenant changes
   const handleTenantChange = useCallback(() => {
@@ -66,70 +119,46 @@ export function FindView() {
   }, [loadSchemas]);
 
   useEffect(() => {
-    // Listen for tenant changes (custom event)
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
     window.addEventListener('tenantChanged', handleTenantChange);
-    
+
     return () => {
       window.removeEventListener('tenantChanged', handleTenantChange);
     };
   }, [handleTenantChange]);
 
-  const saveSearchState = useCallback(() => {
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       if (results.length > 0) {
-        sessionStorage.setItem(SEARCH_RESULTS_KEY, JSON.stringify(results));
-        console.log('Saved results:', results.length, 'records');
+        window.sessionStorage.setItem(storageKeys.results, JSON.stringify(results));
+      } else {
+        window.sessionStorage.removeItem(storageKeys.results);
       }
+
       if (selectedSchema) {
-        sessionStorage.setItem(SEARCH_SCHEMA_KEY, selectedSchema);
-        console.log('Saved schema:', selectedSchema);
+        window.sessionStorage.setItem(storageKeys.schema, selectedSchema);
+      } else {
+        window.sessionStorage.removeItem(storageKeys.schema);
       }
-      sessionStorage.setItem(SEARCH_PERFORMED_KEY, JSON.stringify(searchPerformed));
-      console.log('Saved search performed:', searchPerformed);
-    } catch (err) {
-      console.warn('Failed to save search state:', err);
+
+      window.sessionStorage.setItem(storageKeys.performed, JSON.stringify(searchPerformed));
+    } catch {
+      // Ignore persistence errors
     }
-  }, [results, selectedSchema, searchPerformed]);
+  }, [results, selectedSchema, searchPerformed, storageKeys]);
 
   useEffect(() => {
-    saveSearchState();
-  }, [saveSearchState]);
-
-  useEffect(() => {
-    // Ensure saved schema is valid when schemas are loaded
     if (schemas.length > 0 && selectedSchema && !schemas.includes(selectedSchema)) {
-      console.log('Saved schema not found, switching to first available');
       setSelectedSchema(schemas[0]);
     }
   }, [schemas, selectedSchema]);
-
-  const restoreSearchState = () => {
-    try {
-      const savedResults = sessionStorage.getItem(SEARCH_RESULTS_KEY);
-      const savedSchema = sessionStorage.getItem(SEARCH_SCHEMA_KEY);
-      const savedPerformed = sessionStorage.getItem(SEARCH_PERFORMED_KEY);
-
-      console.log('Restoring search state:', { savedResults, savedSchema, savedPerformed });
-
-      if (savedResults) {
-        const parsedResults = JSON.parse(savedResults);
-        setResults(parsedResults);
-        console.log('Restored results:', parsedResults.length, 'records');
-      }
-      if (savedSchema) {
-        setSelectedSchema(savedSchema);
-        console.log('Restored schema:', savedSchema);
-      }
-      if (savedPerformed) {
-        setSearchPerformed(JSON.parse(savedPerformed));
-        console.log('Restored search performed:', JSON.parse(savedPerformed));
-      }
-    } catch (err) {
-      console.warn('Failed to restore search state:', err);
-    }
-  };
-
-
 
   const handleSearch = async (schema, query) => {
     if (!schema) {
@@ -156,9 +185,11 @@ export function FindView() {
     setResults([]);
     setSearchPerformed(false);
     setError('');
-    // Clear saved state
-    sessionStorage.removeItem(SEARCH_RESULTS_KEY);
-    sessionStorage.removeItem(SEARCH_PERFORMED_KEY);
+
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(storageKeys.results);
+      window.sessionStorage.removeItem(storageKeys.performed);
+    }
   };
 
   const breadcrumbs = [
@@ -166,13 +197,6 @@ export function FindView() {
     { label: 'Search', path: null },
   ];
 
-  // Debug: Log current state for debugging
-  console.log('FindView render state:', {
-    results: results.length,
-    selectedSchema,
-    searchPerformed,
-    loading
-  });
 
   return (
     <>

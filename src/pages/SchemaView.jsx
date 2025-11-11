@@ -1,21 +1,22 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { authService } from '../services/auth';
 import { Header } from '../components/layout/Header';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
-import './ProjectView.css';
+import './SchemaView.css';
 
-const getTenantStorageKey = (key) => {
-  const currentTenant = authService.getCurrentTenant() || 'default';
-  return `schemaView.${currentTenant}.${key}`;
+const getTenantStorageKey = (tenantId, key) => {
+  const safeTenant = tenantId || 'default';
+  return `schemaView.${safeTenant}.${key}`;
 };
-
-const VISIBLE_SCHEMAS_STORAGE_KEY = getTenantStorageKey('visibleSchemas');
-const LAST_SCHEMA_STORAGE_KEY = getTenantStorageKey('lastSelectedSchema');
 
 export function SchemaView() {
   const { tenant } = authService.getAuthData();
+  const storageKeys = useMemo(() => ({
+    visible: getTenantStorageKey(tenant, 'visibleSchemas'),
+    lastSelected: getTenantStorageKey(tenant, 'lastSelectedSchema'),
+  }), [tenant]);
   const [schemas, setSchemas] = useState([]);
   const [selectedSchema, setSelectedSchema] = useState(null);
   const [records, setRecords] = useState([]);
@@ -30,101 +31,64 @@ export function SchemaView() {
   const [error, setError] = useState('');
   const [tabsInitialized, setTabsInitialized] = useState(false);
 
-  const loadSchemas = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await api.schemas.list();
-      const schemaList = Array.isArray(data) ? data : [];
-      setSchemas(schemaList);
-      if (schemaList.length > 0) {
-        const initialVisible = resolveVisibleSchemas(schemaList);
-        setVisibleSchemas(initialVisible);
-        const storedSelected = getStoredSelectedSchema(schemaList);
-        const preferredSchema = storedSelected && initialVisible.includes(storedSelected)
-          ? storedSelected
-          : initialVisible.includes(selectedSchema)
-            ? selectedSchema
-            : initialVisible[0];
-        setSelectedSchema(preferredSchema);
-        setTabsInitialized(true);
-      } else {
-        setVisibleSchemas([]);
-        setSelectedSchema(null);
-        setTabsInitialized(true);
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to load schemas');
-    } finally {
-      setLoading(false);
+  const resolveVisibleSchemas = useCallback((schemaList) => {
+    if (schemaList.length === 0) {
+      return [];
     }
-  };
-
-  useEffect(() => {
-    loadSchemas();
-  }, []);
-
-  // Clear schema state when tenant changes
-  useEffect(() => {
-    const handleTenantChange = () => {
-      setSchemas([]);
-      setSelectedSchema(null);
-      setVisibleSchemas([]);
-      setTabsInitialized(false);
-      setError('');
-      // Reload schemas for new tenant
-      loadSchemas();
-    };
-
-    // Listen for tenant changes (custom event)
-    window.addEventListener('tenantChanged', handleTenantChange);
-    
-    return () => {
-      window.removeEventListener('tenantChanged', handleTenantChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (selectedSchema) {
-      loadRecords(selectedSchema);
-      loadSchemaDefinition(selectedSchema);
-    }
-  }, [selectedSchema]);
-
-  const resolveVisibleSchemas = (schemaList) => {
-    if (schemaList.length === 0) return [];
 
     if (typeof window === 'undefined') {
       return [schemaList[0]];
     }
 
     try {
-      const stored = window.sessionStorage.getItem(VISIBLE_SCHEMAS_STORAGE_KEY);
-      if (!stored) return [schemaList[0]];
+      const stored = window.sessionStorage.getItem(storageKeys.visible);
+      if (!stored) {
+        return [schemaList[0]];
+      }
+
       const parsed = JSON.parse(stored);
-      if (!Array.isArray(parsed)) return [schemaList[0]];
+      if (!Array.isArray(parsed)) {
+        return [schemaList[0]];
+      }
+
       const filtered = parsed.filter((schema) => schemaList.includes(schema));
       return filtered.length > 0 ? filtered : [schemaList[0]];
-    } catch (err) {
-      console.warn('Unable to restore schema tabs from sessionStorage', err);
+    } catch {
       return [schemaList[0]];
     }
-  };
+  }, [storageKeys.visible]);
 
-  const loadSchemaDefinition = async (schema) => {
-    try {
-      const definition = await api.schemas.get(schema);
-      setSchemaDefinition(definition);
-    } catch (err) {
-      console.error('Failed to load schema definition:', err);
+  const getStoredSelectedSchema = useCallback((schemaList) => {
+    if (typeof window === 'undefined') {
+      return null;
     }
-  };
 
-  const loadRecords = async (schema) => {
+    try {
+      const stored = window.sessionStorage.getItem(storageKeys.lastSelected);
+      if (!stored) {
+        return null;
+      }
+
+      return schemaList.includes(stored) ? stored : null;
+    } catch {
+      return null;
+    }
+  }, [storageKeys.lastSelected]);
+
+  const loadSchemaDefinition = useCallback(async (schemaName) => {
+    try {
+      const definition = await api.schemas.get(schemaName);
+      setSchemaDefinition(definition);
+    } catch {
+      setSchemaDefinition(null);
+    }
+  }, []);
+
+  const loadRecords = useCallback(async (schemaName) => {
     try {
       setLoading(true);
       setError('');
-      const data = await api.data.list(schema, { limit: 50 });
+      const data = await api.data.list(schemaName, { limit: 50 });
       setRecords(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || 'Failed to load records');
@@ -132,19 +96,81 @@ export function SchemaView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getStoredSelectedSchema = (schemaList) => {
-    if (typeof window === 'undefined') return null;
+  const loadSchemas = useCallback(async () => {
     try {
-      const stored = window.sessionStorage.getItem(LAST_SCHEMA_STORAGE_KEY);
-      if (!stored) return null;
-      return schemaList.includes(stored) ? stored : null;
+      setLoading(true);
+      setError('');
+      const data = await api.schemas.list();
+      const schemaList = Array.isArray(data) ? data : [];
+      setSchemas(schemaList);
+
+      if (schemaList.length === 0) {
+        setVisibleSchemas([]);
+        setSelectedSchema(null);
+        setTabsInitialized(true);
+        return;
+      }
+
+      const initialVisible = resolveVisibleSchemas(schemaList);
+      setVisibleSchemas(initialVisible);
+
+      const storedSelected = getStoredSelectedSchema(schemaList);
+
+      setSelectedSchema((current) => {
+        if (storedSelected && initialVisible.includes(storedSelected)) {
+          return storedSelected;
+        }
+
+        if (current && initialVisible.includes(current)) {
+          return current;
+        }
+
+        return initialVisible[0];
+      });
+
+      setTabsInitialized(true);
     } catch (err) {
-      console.warn('Unable to restore selected schema from sessionStorage', err);
-      return null;
+      setError(err.message || 'Failed to load schemas');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [getStoredSelectedSchema, resolveVisibleSchemas]);
+
+  useEffect(() => {
+    loadSchemas();
+  }, [loadSchemas]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleTenantChange = () => {
+      setSchemas([]);
+      setSelectedSchema(null);
+      setVisibleSchemas([]);
+      setTabsInitialized(false);
+      setError('');
+      loadSchemas();
+    };
+
+    window.addEventListener('tenantChanged', handleTenantChange);
+
+    return () => {
+      window.removeEventListener('tenantChanged', handleTenantChange);
+    };
+  }, [loadSchemas]);
+
+  useEffect(() => {
+    if (!selectedSchema) {
+      return;
+    }
+
+    loadRecords(selectedSchema);
+    loadSchemaDefinition(selectedSchema);
+  }, [selectedSchema, loadRecords, loadSchemaDefinition]);
 
   const getDisplayColumns = () => {
     if (!records || records.length === 0) return [];
@@ -223,22 +249,22 @@ export function SchemaView() {
     if (!tabsInitialized || typeof window === 'undefined') return;
     if (visibleSchemas.length > 0) {
       window.sessionStorage.setItem(
-        VISIBLE_SCHEMAS_STORAGE_KEY,
+        storageKeys.visible,
         JSON.stringify(visibleSchemas)
       );
     } else {
-      window.sessionStorage.removeItem(VISIBLE_SCHEMAS_STORAGE_KEY);
+      window.sessionStorage.removeItem(storageKeys.visible);
     }
-  }, [visibleSchemas, tabsInitialized]);
+  }, [visibleSchemas, tabsInitialized, storageKeys]);
 
   useEffect(() => {
     if (!tabsInitialized || typeof window === 'undefined') return;
     if (selectedSchema) {
-      window.sessionStorage.setItem(LAST_SCHEMA_STORAGE_KEY, selectedSchema);
+      window.sessionStorage.setItem(storageKeys.lastSelected, selectedSchema);
     } else {
-      window.sessionStorage.removeItem(LAST_SCHEMA_STORAGE_KEY);
+      window.sessionStorage.removeItem(storageKeys.lastSelected);
     }
-  }, [selectedSchema, tabsInitialized]);
+  }, [selectedSchema, tabsInitialized, storageKeys]);
 
   useEffect(() => {
     if (pendingSchemaToAdd && !availableSchemas.includes(pendingSchemaToAdd)) {
