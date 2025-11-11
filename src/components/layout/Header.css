@@ -17,6 +17,39 @@
   margin: 0 auto;
 }
 
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.header-nav {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.nav-link {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--gray-3);
+  text-decoration: none;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--primary-blue);
+  background-color: var(--light-blue);
+  text-decoration: none;
+}
+
+.nav-link.active {
+  color: var(--primary-blue);
+  background-color: var(--light-blue);
+  font-weight: 600;
+}
+
 .header-left {
   display: flex;
   align-items: center;

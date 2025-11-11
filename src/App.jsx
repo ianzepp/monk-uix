@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authService } from './services/auth';
 import { Login } from './pages/Login';
 import { SchemaView } from './pages/SchemaView';
+import { FindView } from './pages/FindView';
 import { RecordDetail } from './pages/RecordDetail';
 import './styles/global.css';
 
@@ -33,6 +34,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SchemaView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/find"
+          element={
+            <ProtectedRoute>
+              <FindView />
             </ProtectedRoute>
           }
         />

@@ -20,6 +20,15 @@ export function Header() {
           </Link>
         </div>
 
+        <div className="header-center">
+          {isAuthenticated && (
+            <nav className="header-nav">
+              <Link to="/data" className="nav-link">Data</Link>
+              <Link to="/find" className="nav-link">Search</Link>
+            </nav>
+          )}
+        </div>
+
         <div className="header-right">
           {isAuthenticated && (
             <>
